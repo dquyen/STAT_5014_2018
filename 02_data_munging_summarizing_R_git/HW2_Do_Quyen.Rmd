@@ -55,8 +55,6 @@ for (i in 1:nrow(sensory_raw))
 #Turn sensory_partial_cleaned to a cleaned table
 sensory_cleaned <- gather(sensory_partial_cleaned,key="Operator",value="Measurement",
                           "Operator 1","Operator 2","Operator 3","Operator 4","Operator 5")
-sensory_cleaned$Operator <- strsplit(sensory_cleaned$Operator,split=" ")[[1]][2]
-
 ```
 
 This data is messy because the columns of "Operator 1", "Operator 2", etc. are also values of an "Operator" variable. The value of variable "item" are stored in multiple rows. 
