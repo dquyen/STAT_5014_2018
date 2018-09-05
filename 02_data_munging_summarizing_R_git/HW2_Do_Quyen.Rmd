@@ -22,7 +22,7 @@ Version control helps me manage and control my coding assignments. If I treat ea
 In this exercise, you will import, munge, clean and summarize datasets from Wu and Hamada's _Experiments: Planning, Design and Analysis_ book you will use in the Spring.  For each one, please weave your code and text to describe both your process and observations.  Make sure you create a tidy dataset describing the variables, create a summary table of the data, note issues with the data.  
 
 a. Sensory data from five operators.    
-<http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/Sensory.dat> 
+ 
 ```{r sensory, echo=FALSE,include=FALSE}
 
 #Import raw data from url
@@ -57,8 +57,12 @@ for (i in 1:nrow(sensory_raw))
 #Turn sensory_partial_cleaned to a cleaned table
 sensory_cleaned <- gather(sensory_partial_cleaned,key="Operator",value="Measurement",
                           "Operator 1","Operator 2","Operator 3","Operator 4","Operator 5")
+sensory_cleaned$Operator <- strsplit(sensory_cleaned$Operator,split=" ")[[1]][2]
 
 ```
+
+This data is messy because the columns of "Operator 1", "Operator 2", etc. are also values of an "Operator" variable. The value of variable "item" are stored in multiple rows. 
+
 ```{r sensory_summary, echo=TRUE, include=TRUE}
 #First 10 rows of the data
 kable(head(sensory_cleaned,10),caption="First 10 rows of cleaned Sensory data")
@@ -69,7 +73,7 @@ kable(summary(sensory_cleaned),caption="Sensory Data Summary")
 ```
 
 b. Gold Medal performance for Olympic Men's Long Jump, year is coded as 1900=0.  
-<http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/LongJumpData.dat>
+
 ```{r medal, include=FALSE, echo=FALSE}
 url <- "http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/LongJumpData.dat"
 medal_raw <- read.csv(url,header=FALSE, sep=" ",skip=1)
@@ -98,8 +102,9 @@ names(medal_cleaned) <- c("Year","Long Jump")
 
 #Remove NA row
 medal_cleaned<- medal_cleaned[-c(23,24),]
-
 ```
+
+This data is messy because variables "Long Jump" and "Year" are stored in multiple columns. 
 ```{r medal_summary,include=TRUE,echo=TRUE}
 #First 10 rows of the cleaned data
 kable(head(medal_cleaned,10),caption="First 10 rows of cleaned Long Jump data")
@@ -108,7 +113,7 @@ kable(summary(medal_cleaned),caption="Long Jump Gold Medal Data Summary")
 ```
 
 c. Brain weight (g) and body weight (kg) for 62 species.    
-<http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/BrainandBodyWeight.dat> 
+
 ```{r brain_body, include=FALSE, echo=FALSE,}
 
 #Import data into a raw table
@@ -136,6 +141,7 @@ names(bodyBrain_cleaned) <- c("Body Wt","Brain Wt")
 #Remove NA row
 bodyBrain_cleaned<- bodyBrain_cleaned[-63,]
 ```
+The data is messy because the variables "Body Weight" and "Brain Weight" are stored in multiple columns.
 ```{r bodyBrain_summary, include=TRUE,echo=TRUE}
 #Show the first 10 rows of the cleaned data
 kable(head(bodyBrain_cleaned,10),caption="First 10 rows of cleaned Brain Wt and Body Wt Data")
@@ -145,7 +151,7 @@ kable(summary(bodyBrain_cleaned),caption="Body and Brain Weight Data Summary")
 
 
 d. Triplicate measurements of tomato yield for two varieties of tomatos at three planting densities.  
-<http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/tomato.dat> 
+
 ```{r tomato, include=FALSE,echo=FALSE}
 url <- "https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/tomato.dat"
 
@@ -198,6 +204,8 @@ for (line in tomato_raw)
   }
 }
 ```
+The data is messy because the columns of 10000, 20000, and 30000 are actually values of variable "density". The cell of the table holds three different values of the yield, whereas each cell should only hold one value of certain variable.
+
 ```{r tomato_summary, echo=TRUE,include=TRUE}
 #Show the first 10 rows of the cleaned data
 kable(head(tomato_cleaned,10),caption="First 10 rows of cleaned tomato data")
@@ -208,10 +216,6 @@ kable(summary(tomato_cleaned),caption="Tomato Data Summary")
 
 
 ## Problem 6
-
-In the swirl lessons, you played with a dataset "plants".  Our ultimate goal is to see if there is a relationship between pH and Foliage_Color.  Consider a statistic that combines the information in pH_Min and pH_Max.  Clean, summarize and transform the data as appropriate.  Use function _lm_ to test for a relationship.  Report both the coefficients and ANOVA results in table form.
-
-Note that if you didn't just do the swirl lesson, it is now not available.  Add the following code to your project to retrieve it.
 
 ```{r plants, echo=T, eval=T,include=FALSE}
 
