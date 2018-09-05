@@ -19,8 +19,6 @@ Version control helps me manage and control my coding assignments. If I treat ea
 
 ## Problem 5
 
-In this exercise, you will import, munge, clean and summarize datasets from Wu and Hamada's _Experiments: Planning, Design and Analysis_ book you will use in the Spring.  For each one, please weave your code and text to describe both your process and observations.  Make sure you create a tidy dataset describing the variables, create a summary table of the data, note issues with the data.  
-
 a. Sensory data from five operators.    
  
 ```{r sensory, echo=FALSE,include=FALSE}
