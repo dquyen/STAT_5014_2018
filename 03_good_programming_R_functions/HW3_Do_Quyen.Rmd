@@ -1,0 +1,159 @@
+---
+title: "HW3_Do_Quyen"
+author: "Quyen Do"
+date: "September 6, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lintr)
+library(tidyr)
+library(knitr)
+library(Deriv) #To find function deriv in Prob.8
+```
+
+##Problem 4
+Take away from good programming style
+
+##Problem 5
+```{r lint,eval=FALSE,include=FALSE,echo=TRUE}
+lint(filename= "./02_data_munging_summarizing_R_git/HW2_Do_Quyen.Rmd")
+```
+
+
+##Problem 6
+```{r summary_stat,eval=F}
+data <- readRDS("./03_good_programming_R_functions/HW3_data.rds")
+
+#Function to calculate mean, sd and correlation
+# of 2 vectors and return the results in a data frame
+summarizeVectors <- function (dev1,dev2)
+{
+  mean_dev1 <- mean(dev1)
+  mean_dev2 <- mean(dev2)
+  sd_dev1 <- sd(dev1)
+  sd_dev2 <- sd(dev2)
+  correlation <- cor(dev1,dev2)
+  df <- data.frame(mean_dev1,mean_dev2,sd_dev1,sd_dev2,correlation)
+  
+  return(df)
+}
+
+
+
+#a. Create a single table of the means, sd, and correlation for each of the 13 Observers in data.rds
+
+##Create a dataframe to hold the results
+Observers_summary <- data.frame(matrix(ncol = 6,nrow = 0))
+names(Observers_summary) <- c("Observer","mean_dev1","mean_dev2","sd_dev1","sd_dev2","correlation")
+
+##Loop through each observer's data to calculate the necessary statistics
+for (observer in unique(data$Observer))
+{
+  current_dev1 <-  data$dev1[which(data$Observer==observer)]
+  current_dev2 <-  data$dev2[which(data$Observer==observer)]
+  result <- summarizeVectors(current_dev1,current_dev2)
+  result$Observer <- observer
+  Observers_summary <- rbind(Observers_summary,result)
+  
+}
+##Rearrange the order of columns in the summary table
+Observers_summary <- Observers_summary[,c(6,1:5)]
+
+#b. Create a boxplot of all the means to compare the spread of means from dev1 to dev2
+par(mfrow=c(1,2))
+boxplot(Observers_summary$mean_dev1,main="All means from dev1",ylim=c(54.260,54.270))
+boxplot(Observers_summary$mean_dev2,main="All means from dev2",ylim=c(47.830,47.840))
+
+```
+TODO: comment on the spread of means
+
+```{r boxplots, eval=F}
+#c. Create a boxplot of all means to compare the spread of sds from dev1 to dev2
+par(mfrow=c(1,2))
+boxplot(Observers_summary$sd_dev1,main="All sds from dev1",ylim=c(16.760,16.770))
+boxplot(Observers_summary$sd_dev2,main="All sds from dev2",ylim=c(26.930,26.940))
+```
+TODO: comment on the spread of sds
+
+##Problem 7
+Import and clean Blood Pressure data
+
+```{r bloodPressure}
+#Read in raw data from the url
+url <- "https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/BloodPressure.dat"
+bloodPressure_raw <- read.csv(url,skip=1,header=T,sep=" ")
+
+#Drop duplicate column
+bloodPressure_raw$Day.1 <- NULL
+
+#Gather all "dev" columns
+
+bloodPressure_cleaned <- gather(bloodPressure_raw, key="Reading_By",value="Reading","Dev1","Dev2","Dev3","Doc1","Doc2","Doc3")
+```
+Summary tables
+```{r bloodPressure_summary}
+#Show the first 10 rows of the cleaned data
+kable(head(bloodPressure_cleaned,10),caption="First 10 rows of cleaned blood pressure data")
+#Create a summary table
+kable(summary(bloodPressure_cleaned),caption="Blood Pressure Data Summary")
+
+```
+##Problem 8
+
+Find solution to (1) using Newton's method
+\begin{equation}
+f(x) = 3^x - sin(x) +cos(5x)
+\end{equation}
+
+```{r Newton}
+#Code up function (1) and its derivative
+fun1 <- function(x)
+{
+  3^x - sin(x) + cos(5*x)
+}
+
+#Solve function using Newton's method
+get_sol_using_Newton <- function(guess, FUN, tolerance)
+{
+  #Retrive the derivative of FUN using Deriv package
+  FUN_deriv <- Deriv(FUN)
+  
+  #Find the value of FUN based on guess
+  x_n <- guess
+  f_n <- FUN(guess)
+  
+  #Set up vectors to hold iteration data
+  x_vect <- c()
+  y_vect <- c()
+  
+  #Iterations to find the best solution within given tolerance
+  while(abs(f_n) > tolerance){
+    
+    #Save iteration data
+    x_vect <- c(x_vect,x_n)
+    y_vect <- c(y_vect,f_n)
+    
+    #Generate new x to check for solution
+    x_n <- x_n - (FUN(x_n)/FUN_deriv(x_n))
+    f_n <- FUN(x_n)
+  }
+  
+  #Loop breaks when a solution within tolerance is found
+  #Save the last iteration, which is also the final solution
+  x_vect <- c(x_vect,x_n)
+  y_vect <- c(y_vect,f_n)
+  
+  #Create plot showing iterations
+  plot.function(FUN,from = min(x_vect) -1,to=max(x_vect)+1)
+  abline(h=0)
+  points(x=x_vect,y=y_vect,type="p",col="red",pch=19)
+  points(x=x_n,y=f_n, type="p",col="blue",pch=19,)
+  
+  return(c(x_n,f_n))
+}
+
+```
