@@ -10,79 +10,113 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(lintr)
-library(tidyr)
+library(tidyverse)
 library(knitr)
+library(vioplot)
 library(Deriv) #To find function deriv in Prob.8
 ```
 
 ##Problem 4
-Take away from good programming style
+
+Some of my takeaways from Google's R programming styles and Hadley Wickham's are naming of variables and functions (use nouns for variables and verbs for function names). Commenting is an important aspect covered in both guidelines. Proper commenting helps the readers understand the code and also help the programmer trace his/her steps while looking back at the script. I particularly like Google's instructions on function documentation that needs to include a descriptive comment on the function's purpose and its required arguments and return values. All in all, the style needs to be consistent throughout the script.
+
+I will pay more attention to the variable and function naming, spacing and indentation when creating my scripts. I will also spend more time on documenting created functions and make sure I include all necessary information. I will also utilize tools like Lintr to keep my style consistent and be aware of common mistakes.
 
 ##Problem 5
 ```{r lint,eval=FALSE,include=FALSE,echo=TRUE}
-lint(filename= "./02_data_munging_summarizing_R_git/HW2_Do_Quyen.Rmd")
+lint(filename="../02_data_munging_summarizing_R_git/HW2_Do_Quyen.Rmd")
 ```
+Some common things I need to change in my code are:
 
+- Putting a space after commas
+- Putting spaces around all infix operators
+- Keeping lines under 80 characters
+- Opening curly braces should not be on their own line
+- Using lower cases for variable and function names
 
 ##Problem 6
-```{r summary_stat,eval=F}
-data <- readRDS("./03_good_programming_R_functions/HW3_data.rds")
 
-#Function to calculate mean, sd and correlation
-# of 2 vectors and return the results in a data frame
-summarizeVectors <- function (dev1,dev2)
-{
+
+###a. Create a single table of the means, sd, and correlation for each of the 13 Observers in data.rds
+```{r summary_stat, echo=T}
+data <- readRDS("../03_good_programming_R_functions/HW3_data.rds")
+
+summarizeVectors <- function (dev1,dev2) {
+  # Calculates mean, sd and correlation of 2 vectors and return the results in a data frame
+  
+  # Args:
+  # dev1: One of the two vectors whose mean, sd and correlation is to be calculated
+  # dev2: The other vector. dev1 and dev2 must have the same length and no missing values.
+  
+  # Returns:
+  #  A data frame with 4 columns (2 columns for the mean of each vector, 2 columns for the sd of each vector and a column for the correlation of the 2 vectors)
+  
+  #Error handling
+  n <- length(dev1)
+  if (n <= 1 || n != length(dev2)) {
+    stop ("Arguments dev1 and dev2 have different lengths.")
+  }
+  if (TRUE %in% is.na(dev1) || TRUE %in% is.na(dev2)) {
+    stop ("There is missing value within argument dev1 or dev2.")
+  }
+  
+  # Calculate mean, sd and correlation of dev1 and dev2
   mean_dev1 <- mean(dev1)
   mean_dev2 <- mean(dev2)
   sd_dev1 <- sd(dev1)
   sd_dev2 <- sd(dev2)
   correlation <- cor(dev1,dev2)
-  df <- data.frame(mean_dev1,mean_dev2,sd_dev1,sd_dev2,correlation)
+  
+  # Put the summary statistics in a data frame
+  df <- data.frame(mean_dev1, mean_dev2, sd_dev1, sd_dev2, correlation)
   
   return(df)
 }
 
-
-
-#a. Create a single table of the means, sd, and correlation for each of the 13 Observers in data.rds
-
-##Create a dataframe to hold the results
+# Create a dataframe to hold the results
 Observers_summary <- data.frame(matrix(ncol = 6,nrow = 0))
-names(Observers_summary) <- c("Observer","mean_dev1","mean_dev2","sd_dev1","sd_dev2","correlation")
+names(Observers_summary) <- c("Observer", "mean_dev1", "mean_dev2", 
+                              "sd_dev1","sd_dev2","correlation")
 
-##Loop through each observer's data to calculate the necessary statistics
-for (observer in unique(data$Observer))
+# Loop through each observer's data to calculate the necessary statistics
+for (obs in unique(data$Observer))
 {
-  current_dev1 <-  data$dev1[which(data$Observer==observer)]
-  current_dev2 <-  data$dev2[which(data$Observer==observer)]
+  current_dev1 <- data[which(data$Observer ==obs),"dev1"]
+  current_dev2 <- data[which(data$Observer ==obs),"dev2"]
   result <- summarizeVectors(current_dev1,current_dev2)
-  result$Observer <- observer
+  result$Observer <- obs
   Observers_summary <- rbind(Observers_summary,result)
   
 }
-##Rearrange the order of columns in the summary table
-Observers_summary <- Observers_summary[,c(6,1:5)]
+# Rearrange the order of columns in the summary table and sort the row by Observer
+Observers_summary <- Observers_summary[,c(6,1:5)] %>% arrange(Observer)
 
-#b. Create a boxplot of all the means to compare the spread of means from dev1 to dev2
+#Print the result
+Observers_summary
+```
+###b. Create a boxplot of all the means to compare the spread of means from dev1 to dev2
+
+```{r observer_boxplot, echo=T}
 par(mfrow=c(1,2))
 boxplot(Observers_summary$mean_dev1,main="All means from dev1",ylim=c(54.260,54.270))
 boxplot(Observers_summary$mean_dev2,main="All means from dev2",ylim=c(47.830,47.840))
 
+#g <- ggplot(data = gather(Observers_summary,key="Dev",value="mean","mean_dev1","mean_dev2"),aes(x=Dev,y=mean) ) + geom_boxplot()
 ```
-TODO: comment on the spread of means
 
-```{r boxplots, eval=F}
-#c. Create a boxplot of all means to compare the spread of sds from dev1 to dev2
+###c. Create a violin plot of all means to compare the spread of sds from dev1 to dev2
+
+```{r viloinPlots, eval=F}
 par(mfrow=c(1,2))
-boxplot(Observers_summary$sd_dev1,main="All sds from dev1",ylim=c(16.760,16.770))
-boxplot(Observers_summary$sd_dev2,main="All sds from dev2",ylim=c(26.930,26.940))
+vioplot(Observers_summary$sd_dev1,ylim=c(16.750,16.780),names="sd_dev1")
+vioplot(Observers_summary$sd_dev2,ylim=c(26.920,26.950),names="sd_dev2")
+#g <- ggplot(data = gather(Observers_summary,key="Dev",value="sd","sd_dev1","sd_dev2"),aes(x=Dev,y=sd) ) + geom_violin()
 ```
-TODO: comment on the spread of sds
 
 ##Problem 7
 Import and clean Blood Pressure data
 
-```{r bloodPressure}
+```{r bloodPressure, echo=F}
 #Read in raw data from the url
 url <- "https://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/BloodPressure.dat"
 bloodPressure_raw <- read.csv(url,skip=1,header=T,sep=" ")
@@ -95,7 +129,7 @@ bloodPressure_raw$Day.1 <- NULL
 bloodPressure_cleaned <- gather(bloodPressure_raw, key="Reading_By",value="Reading","Dev1","Dev2","Dev3","Doc1","Doc2","Doc3")
 ```
 Summary tables
-```{r bloodPressure_summary}
+```{r bloodPressure_summary,echo=T}
 #Show the first 10 rows of the cleaned data
 kable(head(bloodPressure_cleaned,10),caption="First 10 rows of cleaned blood pressure data")
 #Create a summary table
@@ -110,36 +144,61 @@ f(x) = 3^x - sin(x) +cos(5x)
 \end{equation}
 
 ```{r Newton}
-#Code up function (1) and its derivative
-fun1 <- function(x)
-{
+#Define function (1)
+fun1 <- function(x) {
   3^x - sin(x) + cos(5*x)
 }
 
-#Solve function using Newton's method
-get_sol_using_Newton <- function(guess, FUN, tolerance)
-{
-  #Retrive the derivative of FUN using Deriv package
+get_solution_using_Newtons_method <- function(guess, FUN, tolerance) {
+  # solve for the solution of a function using iterations by Newton's method
+  
+  # Args:
+  #   guess: the initial solution guess to star the iteration
+  #   FUN: the function to be solved
+  #   tolerance: the tolerance if absolute difference between 0 and the value of a function
+  #             at a point is within this tolerance, then the point is an acceptable solution
+  
+  # Returns:
+  #   A list containing the solution, the tolerance, and a graph visualzing all iterations
+    
+  # Set up the max iteration
+  max_iteration <- 100
+  iteration_index <- 0
+  
+  # Retrive the derivati ve of FUN using Deriv package
   FUN_deriv <- Deriv(FUN)
   
-  #Find the value of FUN based on guess
+  # Find the value of FUN based on guess
   x_n <- guess
   f_n <- FUN(guess)
   
-  #Set up vectors to hold iteration data
+  # Set up vectors to hold iteration data
   x_vect <- c()
   y_vect <- c()
+  deriv_vect <- c()
+  
+  # Set up the plot of iterations to return
+  p <- ggplot(data=data.frame(x=0),mapping=aes(x=x))
+  p <- p+ stat_function(fun=FUN)
   
   #Iterations to find the best solution within given tolerance
-  while(abs(f_n) > tolerance){
+  while(abs(f_n) > tolerance & iteration_index <= max_iteration){
     
     #Save iteration data
     x_vect <- c(x_vect,x_n)
     y_vect <- c(y_vect,f_n)
+    deriv_vect <- c(deriv_vect,FUN_deriv(x_n))
     
     #Generate new x to check for solution
     x_n <- x_n - (FUN(x_n)/FUN_deriv(x_n))
     f_n <- FUN(x_n)
+    
+    #add visualization of the iteration on the plot
+    p <- p + geom_segment(x=x_vect[length(x_vect)],xend=x_n,y=y_vect[length(y_vect)],yend=0)
+    p <- p + geom_segment(x=x_n,xend=x_n,y=0,yend=f_n,lty="dashed")
+    
+    #update interation_index
+    iteration_index <- iteration_index + 1
   }
   
   #Loop breaks when a solution within tolerance is found
@@ -147,13 +206,24 @@ get_sol_using_Newton <- function(guess, FUN, tolerance)
   x_vect <- c(x_vect,x_n)
   y_vect <- c(y_vect,f_n)
   
-  #Create plot showing iterations
-  plot.function(FUN,from = min(x_vect) -1,to=max(x_vect)+1)
-  abline(h=0)
-  points(x=x_vect,y=y_vect,type="p",col="red",pch=19)
-  points(x=x_n,y=f_n, type="p",col="blue",pch=19,)
   
-  return(c(x_n,f_n))
+  #Add the iteration points to the plot
+  p <- p + geom_point(data.frame(x_vect,y_vect),
+                 mapping=aes(x=x_vect,y=y_vect), colour="red")
+  
+  p <- p + geom_point(x=x_vect[1],y=y_vect[1],color="darkgreen",size = 2) # The guess point
+  p <- p + geom_point(x=x_n,y=f_n,color="blue",size = 2) #  The solution
+  
+  #Reframe the axes for the plot
+  p <- p + xlim(min(x_vect)-1,max(x_vect)+1)
+  
+  
+  return(list(x_n,tolerance,p))
 }
 
 ```
+
+```{r function_trial}
+get_solution_using_Newtons_method(0.5,fun1,10^-7)
+```
+
