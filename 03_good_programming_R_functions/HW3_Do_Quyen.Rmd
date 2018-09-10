@@ -36,7 +36,6 @@ Some common things I need to change in my code are:
 
 ##Problem 6
 
-
 ###a. Create a single table of the means, sd, and correlation for each of the 13 Observers in data.rds
 ```{r summary_stat, echo=T}
 data <- readRDS("../03_good_programming_R_functions/HW3_data.rds")
@@ -92,8 +91,9 @@ for (obs in unique(data$Observer))
 Observers_summary <- Observers_summary[,c(6,1:5)] %>% arrange(Observer)
 
 #Print the result
-Observers_summary
+kable(Observers_summary,caption="Summary by Observer")
 ```
+
 ###b. Create a boxplot of all the means to compare the spread of means from dev1 to dev2
 
 ```{r observer_boxplot, echo=T}
@@ -101,20 +101,24 @@ par(mfrow=c(1,2))
 boxplot(Observers_summary$mean_dev1,main="All means from dev1",ylim=c(54.260,54.270))
 boxplot(Observers_summary$mean_dev2,main="All means from dev2",ylim=c(47.830,47.840))
 
-#g <- ggplot(data = gather(Observers_summary,key="Dev",value="mean","mean_dev1","mean_dev2"),aes(x=Dev,y=mean) ) + geom_boxplot()
+#Put them together on one plot
+ggplot(data = gather(Observers_summary,key="Dev",value="mean","mean_dev1","mean_dev2"),aes(x=Dev,y=mean) ) + geom_boxplot()
 ```
+
+The means from device 1 and device 2 seem to have the same range, however, the distribution of all the means of device 1 skews to the left. Device 2 has a more sysmetric distribution of all the means. Putting the 2 boxplots together in the same graph does not give us much information since the placement of the two boxplots is far apart from each other on the coordinate. 
 
 ###c. Create a violin plot of all means to compare the spread of sds from dev1 to dev2
 
-```{r viloinPlots, eval=F}
+```{r viloinPlots, echo=T}
 par(mfrow=c(1,2))
 vioplot(Observers_summary$sd_dev1,ylim=c(16.750,16.780),names="sd_dev1")
 vioplot(Observers_summary$sd_dev2,ylim=c(26.920,26.950),names="sd_dev2")
-#g <- ggplot(data = gather(Observers_summary,key="Dev",value="sd","sd_dev1","sd_dev2"),aes(x=Dev,y=sd) ) + geom_violin()
+ggplot(data = gather(Observers_summary,key="Dev",value="sd","sd_dev1","sd_dev2"),aes(x=Dev,y=sd) ) + geom_violin()
 ```
 
+The distribution of the standard deviations from device 1 and device 2 are very different. Device 1's standard deviation is very right-skewed. As with the means, putting the 2 violin plots on the same graph does not convey much information because of the wide-apart displacement.
+
 ##Problem 7
-Import and clean Blood Pressure data
 
 ```{r bloodPressure, echo=F}
 #Read in raw data from the url
@@ -136,6 +140,7 @@ kable(head(bloodPressure_cleaned,10),caption="First 10 rows of cleaned blood pre
 kable(summary(bloodPressure_cleaned),caption="Blood Pressure Data Summary")
 
 ```
+
 ##Problem 8
 
 Find solution to (1) using Newton's method
@@ -162,7 +167,7 @@ get_solution_using_Newtons_method <- function(guess, FUN, tolerance) {
   #   A list containing the solution, the tolerance, and a graph visualzing all iterations
     
   # Set up the max iteration
-  max_iteration <- 100
+  max_iteration <- 1000
   iteration_index <- 0
   
   # Retrive the derivati ve of FUN using Deriv package
@@ -201,6 +206,11 @@ get_solution_using_Newtons_method <- function(guess, FUN, tolerance) {
     iteration_index <- iteration_index + 1
   }
   
+  # Check if going over maximum iterations
+  if (iteration_index > max_iteration) {
+    print ("Unable to converge: try different tolerance or initial guess")
+  }
+  
   #Loop breaks when a solution within tolerance is found
   #Save the last iteration, which is also the final solution
   x_vect <- c(x_vect,x_n)
@@ -215,15 +225,18 @@ get_solution_using_Newtons_method <- function(guess, FUN, tolerance) {
   p <- p + geom_point(x=x_n,y=f_n,color="blue",size = 2) #  The solution
   
   #Reframe the axes for the plot
-  p <- p + xlim(min(x_vect)-1,max(x_vect)+1)
+  p <- p + xlim(min(x_vect)-1,max(x_vect)+1) + ggtitle("Newton's method iterations to find root")
   
   
   return(list(x_n,tolerance,p))
 }
 
 ```
+For my Newton's method function, I let the user decide on the tolerance so that they can get a solution such the value of the result is within the specified tolerance. I also set maximum iterations at 1000. Any call that goes beyond 1000 will get an error asking for another guess or tolerance. Returned value from the function is a list containing the solution itself, the tolerance as specified by the user and a 'ggplot' object showing the iterations. The green point is the initial guess from the user and blue point is the final solution estimated by my Newton's method function. All the red dots are different iterations from the method.
 
 ```{r function_trial}
-get_solution_using_Newtons_method(0.5,fun1,10^-7)
+get_solution_using_Newtons_method(2,fun1,10^-7)
 ```
+
+
 
