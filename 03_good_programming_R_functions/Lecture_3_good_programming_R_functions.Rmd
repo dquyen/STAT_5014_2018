@@ -1,0 +1,249 @@
+---
+title: 'Good programming practices, R functions and logic'
+author: "Bob Settlage"
+date: '`r Sys.Date()`'
+output:
+  ioslides_presentation:
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 4
+    smaller: yes
+  slidy_presentation: default
+---
+
+## Today's Agenda
+
+- Review Git  
+- Review data munging and creating tidy datasets  
+- Introduce good programming practices  
+- R functions  
+- for next  
+- if else 
+- while loop  
+- Homework 3
+
+
+## Version Control and Git
+
+Git is essentially a database of snapshots of the project directory tree.  You decide what and when to take snapshots of and if you using GitHub (or similar) when to push a copy to a remote repository.
+
+The basic workflow is:  
+
+1. **do work**  
+2. git **pull** to make sure you have latest files
+3. git **add** *\<your changed file\>* tells git what change you care about  
+4. git **commit** -m "some INFORMATIVE message about the changes"  
+5. git **push** to the repository (local or remote)  
+6. repeat  
+
+<https://github.com/rsettlage/STAT_5014>
+
+## Git file states
+
+- Untracked - files that have not been added to the database
+- Committed - data is safely stored in your local database  
+- Modified - file is changed but not committed it to your database yet  
+- Staged - a modified file in its current version will go in next commit snapshot
+
+![Git file lifecycle](git_file_lifecycle.png)
+
+## Git fork setup
+
+Note that our setup is a little more complex in that we have two remote and local repositories.  Thinking about what is visible to your system, we have the below.  What makes this difficult is the fact that I keep changing the original repo as I add homework etc.  This requires some additional steps.
+
+<div class="columns-2">
+
+```{r, out.height="400px",out.width="350px",eval=T, echo=F}
+    knitr::include_graphics("git_fork_remote_config.png")
+```
+
+git remote add upstream <https://github.com/rsettlage/STAT_5014.git>
+git fetch upstream
+git checkout master
+git merge -Xtheirs upstream
+
+
+## Back to Reproducible Research Analysis
+
+From Hadley Wickham & Garrett Grolemund's R for Data Science 
+<http://r4ds.had.co.nz>  
+![Data Science Pipeline](../01_Reproducible_Research_R_Latex/data-science-pipeline.png)  
+
+Our first job is usally to get and "tidy" the data.
+
+## Tidy Data
+
+We have multiple ways to get data into R.  We now have to get it into a useable format.  Tidy.
+
+<http://vita.had.co.nz/papers/tidy-data.html>
+
+Messy:  
+- Column headers are values, not variable names.  
+- Multiple variables are stored in one column.  
+- Variables are stored in both rows and columns.  
+- Multiple types of observational units are stored in the same table.  
+- A single observational unit is stored in multiple tables.
+
+Tidy:  
+1. Each variable forms a column.  
+2. Each observation forms a row.  
+3. Each type of observational unit forms a table.  
+
+## Messy ---> Tidy  :)
+
+```{r, echo=F, eval=T}
+    messy_data1_df<-data.frame(treatmenta=c("NA",16,3),treatmentb=c(2,11,1),row.names=c("John Smith","Jane Doe","Mary Johnson"),stringsAsFactors=F)
+    knitr::kable(messy_data1_df,format = "markdown", caption="Messy Data")
+```
+
+```{r, echo=F, eval=T}
+    library(tidyr,quietly=T,warn.conflicts=F)
+    library(dplyr,quietly=T,warn.conflicts=F)
+    tidy_data1_df<-messy_data1_df %>%
+                    mutate(names=rownames(messy_data1_df)) %>%
+                    gather(treatment,value,treatmenta:treatmentb) %>%
+                    mutate(treatment=gsub("treatment","",treatment),
+                           value=readr::parse_number(value))
+    knitr::kable(tidy_data1_df,format = "markdown", caption="Tidy Data")
+```
+
+## Good Programming Practices
+
+Most analysis will require some amount of programming.  As we program, we should strive to create readable and reusable code.  The art of creating good code is captured in the broad and opinionated topic of Good Programming Practices.  You will devolop your own style, but it would be good to start with some guidance from some experts.  
+
+Google's R Style Guide <https://google.github.io/styleguide/Rguide.xml>  
+Hadley Wickam's Style Guide: <http://r-pkgs.had.co.nz/style.html>  
+
+## Good Programming Practices cont
+
+Remember: ultimate goal is Reproducible Research.  
+To enable this, we need well documented (annotated) _**readable**_ code.
+
+1. variable/object names  
+    + nouns describing what the object holds, e.g. originaData instad of d  
+    + DO NOT use existing variables or functions, e.g. T<-1000
+2. function formation  
+    + function names should be verb associated with the function purpose  
+    + comment both function purpose and required arguments    
+    + arguments should have defaults (my personal preference)
+    + my preference is to explicitly return a value  
+3. commenting rules  
+    + comment your code!!  'nough said?  
+4. indent within logical blocks of code !!
+    + indenting improves the readability of the code by orders of magnetute!  
+    
+## Functions
+
+A function is an _**object**_ that takes some input objects (args) and produces some output objects.
+
+```{r echo=T, eval=F}
+    dataA<-1;dataB<-2
+    BAD<-function(x){
+        mean(c(x,dataA))
+    }
+    computeMeanGOOD<-function(x=3,y=5){
+        # quick function to compute the geometric mean of two numbers, x and y
+        # returns geometric mean
+        if (!is.numeric(x) || !is.numeric(y)) stop("both x and y must be numeric")
+        return(mean(c(x,y)))
+    }
+    BAD(x=dataB)
+    computeMeanGOOD(x=dataA,y=dataB)
+```
+
+GOOD functions include passing in ALL necessary data.  If we do not do this, we can have MAJOR issues with variable scope that is often difficult to troubleshoot.  Ideally our code includes error checking.
+
+_**All**_ work in R is done in functions. '[<-'(animals,4,"duck")
+
+## Variable scope
+
+R uses Lexical scoping rules.  What tha?
+
+<https://darrenjw.wordpress.com/2011/11/23/lexical-scope-and-function-closures-in-r/>  
+Totally recommend subscribing to Darren's blog AND reading all his past posts.  
+
+<http://andrewgelman.com/2014/01/29/stupid-r-tricks-random-scope/>  
+Another good site.  Also has a few great stats books.
+
+While we are at it, r-bloggers has many useful tidbits. <https://www.r-bloggers.com>
+
+```{r eval=F, echo=T}
+    z <- 1; a <- 1
+    m <- function(){a <- 2; return(c(a,z)) }
+    m(); a
+    
+    a <- 1; b <- 2
+    f<-function(x){ a*x + b }
+    g<-function(x){ a <<- 2; b <- 1; print(objects()); f(x) }
+    g(2)
+
+```
+
+
+## FOR statement
+
+Often, we want to loop through a set number of items or do a task a predetermined length of time.  Can add additional controls via **break** and **next**.  To get help on functions type ?"for"
+
+```{r echo=T, eval=T, cache=T}
+    Iter <- 5
+    cumIndex <- 0
+    for(i in 1:Iter){
+        cumIndex <- cumIndex + 1
+    }
+    print(cumIndex)
+
+```
+
+## If ELSE statement
+
+A powerful addition to any program is the ability to change the course of the program as conditions change.  In R, one such flow change statement is the if else statement.
+
+```{r eval=T, echo=T}
+    for(i in 1:10){
+        if(i %% 2 == 1){
+            print(paste0("i=",i," is odd"))
+        }
+    }
+```
+
+## While loop
+
+A while loop can be thought of as a combination of a for loop and an if statement.  Do until condition is true.
+
+```{r eval=T, echo=T}
+    dummyVar=0
+    while(dummyVar<10){
+        dummyVar = dummyVar + 1
+    }
+```
+
+## Timing
+
+As you start to make functions, it is a good idea to think about how long things take.
+
+Really good blog on this here:  <https://www.r-bloggers.com/5-ways-to-measure-running-time-of-r-code/>
+
+Consider the following code and timings:
+
+```{r echo=T, eval=F, cache=F,tidy=T}
+
+    library("microbenchmark")
+    ##takes a vector and a value, determines if the elements of the vector are to the right/left
+    left_right1<-function(x = c(0.1,0.9), bar = 0.5){
+        temp<-NULL
+        for(i in seq_along(x)){
+            temp[i] <- (x[i]>bar)*1
+        }
+        return(temp)
+    }
+    left_right2 <- function(x = c(0.1,0.9), bar = 0.5){
+        ifelse(x>bar,1,0)
+    }
+    x1<-rnorm(n = 1000,mean=0.5)
+    microbenchmark(result1<-left_right1(x=x1),result2<-left_right2(x=x1),times = 100, unit = "ms")
+    identical(result1, result2)
+```
+
+
+
+## Homework 3
