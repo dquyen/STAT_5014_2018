@@ -31,16 +31,17 @@ prob4_combined <- rbind(prob4_data1,prob4_data2)
 1,2. Summary statistics and factor exploration
 
 ```{r prob4_dataSummary}
+#Factor
+prob4_combined$block <- as.factor(prob4_combined$block)
+
 #Summary table 
 knitr::kable(summary(prob4_combined),caption="Summary of Problem 4 Data")
 ```
-The data has 3 variables named "block", "depth" and "phosphate". "Block" is a discrete variable from 1 to 13, which is likely a factor variable.
 
-```{r prob4_factor}
-#Factor
-prob4_combined$block <- as.factor(prob4_combined$block)
-```
+The data has 3 variables named "block", "depth" and "phosphate". "Block" is a discrete variable from 1 to 13, which is likely a factor variable. Both "depth" and "block" are continuous variables.
+
 3. Multipanel plot
+
 
 ```{r multiplot_gqplot}
 #Multipane plot using ggplot and ggpubr
@@ -60,7 +61,7 @@ ggarrange(ggarrange(p1,p2,p3,p4,ncol = 2,nrow=2), p5, nrow = 2)
 
 
 ```
-```{r multiplot_base}
+```{r multiplot_base, eval=F, echo=F}
 layout(matrix(c(1,2,3,4,5,5), 3, 2, byrow = TRUE))
 par(mar=rep(2,4), oma=rep(0, 4))
 hist(prob4_combined$depth,main="Histogram of depth")
@@ -70,72 +71,79 @@ boxplot(prob4_combined$phosphate~prob4_combined$block,main="Phosphate by blocks"
 par(mar=c(4,4,0,0))
 plot(x=prob4_combined$depth,y=prob4_combined$phosphate,col=prob4_combined$block,
      pch=19,xlab="Depth",ylab="Phosphate")
+
+#Note: the color scheme doesn't seem to work for base graph
 ```
 
+From the histograms, variable "depth" has a slightly symmetric and unimodal distribution. One could also say that there is a slight right skew with variable "depth".  Variable "phosphate", however, is multimodal. Plotting the boxplot of these two variables by block shows that the distribution of "depth" among different blocks are not as similar as those from "phosphate". Specifically, "depth" from block 5, 11, 12 and 13 are very skewed and there is an outlier for "depth" variable of block 4. Among "phosphate" groups by block, the distributions are much more symmetric, with exception to block 7.
+
+Scatter plot between "depth" and "phosphate" does not show any trend or correlation between the two variables. When adding color to each dot denoting the block that it comes from, not much information is gained since the colors seem equally scatter across.  
+
+4. Correlation plots
 
 ```{r pairs_plot}
-par(mar=rep(0,4))
-with(data=prob4_combined,pairs(phosphate~depth, col=block,pch=19))
+par(mar=rep(1,4), oma=rep(0, 4))
+with(data=prob4_combined,pairs(phosphate~depth+block, col=block,pch=19,main="Pairs plot of Combined data"))
 
 ```
 
-```{r corrplot}
+```{r corrplot, fig.height=4,fig.width=4}
+par(mar=rep(1,4), oma=rep(0, 4))
 fit <- lm(phosphate~.,prob4_combined)
 corr.fit <- summary(fit,correlation=T)$correlation
 plotcorr(corr.fit,col="pink")
-
 ```
 
+Using the pairs and correlation plot, we can notice some interesting patterns. The distribution of the phosphate value among block 5 and 6 seem concentrate on some specific values while the rest are scattered evenly across the range of "phosphate". Similary, block 5 and 12 also seem to be grouped by certain "depth" values. Both pairs and correlation plot confirm no linear relationship between "phosphate" and "depth".
 
+5. Lesson when considering the summary statistics and the plots
+
+In the last assignment, we built the boxplots of the mean by observer of both variables in the same graph. As shown in the graphs, this does not give us much information because of the scale of each variables are drastically different. This results in meaningless graphs. There, when it comes to different variables, their distributions should not be plotted on the same graph. Instead, to examine the relationship between variables, it is better to use scatter plot since it captures the two dimensions of each data point. We can also color each point on the plot to a value of a categorical variable. This will add another dimension to the scatterplot for consideration. The distribution of each variables can be compared when ploting them on different graphs.
 
 ## Problem 5
 
-```{r scatterNhist_selfMade}
+```{r scatterNhist_self}
 # Add boxplots to a scatterplot
-
-get_scatter_n_hist <- function(X,bin_num = 10, ycol = "red",xcol="blue",pcol = "green", ...) {
+draw_scatter_with_hist <- function(df,bin_num = 10, 
+                                   ycol = "red",xcol="blue",pcol = "green", ...) {
+  # Create a scatter plot of two variable bordered with their histograms 
+  
+  # Args:
+  # df: a data frame with two variables 
+  # bin_num: the number of bin for the histogram. Default value is 10
+  # ycol: color for the histogram of dependent variable
+  # xcol: color for the histogram of independent variable
+  # pcol: color for each points on the scatter plot
+  # ... : arguments that can be paste into the scatter plot to govern its appearance
+  
+  # Returns:
+  #  A plot containing a scatter plot with the independent variable being the first variable of df and dependent variable being the second variable. 
+  #  Bordering the right side of the scatterplot is the histogram of X and sitting on top of the scatterplot is the histogram of Y. 
+  #  The interval on the axes also reflect the bins of the histograms
   
   ## check input
-  stopifnot(ncol(X)==2)
+  stopifnot(ncol(df)==2)
+  
+  ## Get the sequence for plotting
+  xseq <- seq(from=min(df[,1]), to=max(df[,1]), length.out=bin_num)
+  yseq <- seq(from=min(df[,2]), to=max(df[,2]), length.out=bin_num)
   
   #Build the scatter plot
   par(fig=c(0,0.8,0,0.8),mar=c(4,4,0,0),oma=rep(0,4), new=FALSE)
-  plot(X[,1], X[,2], col=pcol, ...)
+  plot(df[,1], df[,2], col=pcol, axes = FALSE,...)
+  axis(side=1, at=xseq)
+  axis(side=2, at=yseq)
 
-  #Build marginal X histogram
+  #Build marginal df histogram
   par(fig=c(0,0.8,0.8,1),mar=c(0,4,0,0),oma=rep(0,4), new=TRUE)
-  hist(X[,1], axes=FALSE,col=xcol,main=NULL,ylab=NULL,breaks=seq(from=min(X[,1])-+sd(X[,1])/length(X[,1]),
-                                              to=max(X[,1])+sd(X[,1])/length(X[,1]),
-                                              length.out=bin_num))
+  hist(df[,1], axes=FALSE, col=xcol, main=NULL, ylab=NULL, breaks=xseq,freq=FALSE) 
 
   #Build marginal Y histogram
   par(fig=c(0.8,1,0,0.8),mar=c(4,0,0,1),oma=rep(0,4),new=TRUE)
-  yhist <- hist(X[,2], plot=FALSE, breaks=seq(from=min(X[,2])-+sd(X[,2])/length(X[,2]),
-                                              to=max(X[,2])+sd(X[,2])/length(X[,2]),
-                                              length.out=bin_num))
-  barplot(yhist$density, axes=FALSE, xlim=c(0, max(yhist$density)),
-          space=0, horiz=TRUE, col = ycol)
+  yhist <- hist(df[,2], plot=FALSE, breaks=yseq)
+  barplot(yhist$density, axes=FALSE, xlim=c(0, max(yhist$density)), space=0, horiz=TRUE, col = ycol)
   
 }
-
-crime.data <- USArrests
-
-get_scatter_n_hist(data.frame(crime.data$UrbanPop,crime.data$Assault),xlab="Urban Population",
-               ylab="Assault cases",pch=19,ycol="maroon",xcol="orange",pcol = "darkblue")
-
-
-# par(fig=c(0,0.8,0,0.8),mar=c(4,4,0,0),oma=rep(0,4), new=FALSE)
-# plot(mtcars$wt, mtcars$mpg, xlab="Car Weight", ylab="Miles Per Gallon",pch=19,col="darkgreen")
-# 
-# par(fig=c(0,0.8,0.8,1),mar=c(0,4,0,0),oma=rep(0,4), new=TRUE)
-# hist(mtcars$wt, axes=FALSE,col="maroon",main=NULL,ylab=NULL)
-# 
-# par(fig=c(0.8,1,0,0.8),mar=c(4,0,0,1),oma=rep(0,4),new=TRUE)
-# yhist <- hist(mtcars$mpg, plot=FALSE, breaks=seq(from=min(mtcars$mpg)-+sd(mtcars$mpg)/length(mtcars$mpg),
-#                                               to=max(mtcars$mpg)+sd(mtcars$mpg)/length(mtcars$mpg),
-#                                               length.out=10))
-# barplot(yhist$density, axes=FALSE, xlim=c(0, max(yhist$density)),
-#           space=0, horiz=TRUE, col = "orange")
 ```
 
 ```{r multiplot_stackOverFlow}
@@ -157,14 +165,12 @@ scatterBarNorm <- function(x, dcol="blue", lhist=20, num.dnorm=5*lhist, ...){
   plot(x, xlim=range(x[,1]), ylim=range(x[,2]), pch=20,...)
   ## 3) determine barplot and height parameter
   ## histogram (for barplot-ting the density)
-  xhist <- hist(x[,1], plot=FALSE, breaks=seq(from=min(x[,1])-+sd(x[,1])/length(x[,1]),
-                                              to=max(x[,1])+sd(x[,1])/length(x[,1]),  length.out=lhist))
-  yhist <- hist(x[,2], plot=FALSE, breaks=seq(from=min(x[,2])-+sd(x[,2])/length(x[,2]),
-                                              to=max(x[,2])+sd(x[,2])/length(x[,2]),  length.out=lhist)) # note: this uses probability=TRUE
+  xhist <- hist(x[,1], plot=FALSE, breaks=seq(from=min(x[,1]),to=max(x[,1]),length.out=lhist))
+  yhist <- hist(x[,2], plot=FALSE, breaks=seq(from=min(x[,2]), to=max(x[,2]),length.out=lhist)) # note: this uses probability=TRUE
   ## determine the plot range and all the things needed for the barplots and lines
-  xx <- seq(min(x[,1])-sd(x[,1])/length(x[,1]), max(x[,1])+sd(x[,1])/length(x[,1]), length.out=num.dnorm) # evaluation points for the overlaid density
+  xx <- seq(min(x[,1]), max(x[,1]), length.out=num.dnorm) # evaluation points for the overlaid density
   xy <- dnorm(xx, mean=mean(x[,1]), sd=sd(x[,1])) # density points
-  yx <- seq(min(x[,2])-sd(x[,2])/length(x[,2]), max(x[,2])+sd(x[,2])/length(x[,2]), length.out=num.dnorm)
+  yx <- seq(min(x[,2]), max(x[,2]), length.out=num.dnorm)
   yy <- dnorm(yx, mean=mean(x[,2]), sd=sd(x[,2]))
   ## barplot and line for x (top)
   par(mar=c(0, 4, 0, 0)) #pext = 4 bottom, left, top, right
@@ -179,19 +185,28 @@ scatterBarNorm <- function(x, dcol="blue", lhist=20, num.dnorm=5*lhist, ...){
   ## restore parameters
   par(par.)
 }
-
-#Using R dataset
-crime.data <- USArrests
-
-scatterBarNorm(data.frame(crime.data$UrbanPop,crime.data$Assault),lhist=20,xlab="Urban Population",
-               ylab="Assault cases")
 ```
 
-```{r prob5_ggplot,eval=F}
+```{r print_plot}
+#Import US Arrests data set
+crime.data <- USArrests
+
+#Self-made plot
+draw_scatter_with_hist(data.frame(crime.data$UrbanPop,crime.data$Assault),bin_num = 10,
+                    xlab="Urban Population", ylab="Assault cases",
+                    pch=19,ycol="maroon",xcol="orange",pcol = "darkblue")
+
+#Plot using StackOverFlow answer
+scatterBarNorm(data.frame(crime.data$UrbanPop,crime.data$Assault),lhist=10,
+               xlab="Urban Population", ylab="Assault cases")
+
+```
+
+
+```{r prob5_ggplot,eval=T}
 #Using ggplot
 x <- data.frame(crime.data$UrbanPop,crime.data$Assault)
 p <- ggplot(x, aes(x[,1], x[,2])) + geom_point() + theme_classic()
-
 ggMarginal(p, x, type = "histogram", yparams=list(colour="orange"))
 
 ```
