@@ -206,7 +206,11 @@ scatterBarNorm(data.frame(crime.data$UrbanPop,crime.data$Assault),lhist=10,
 ```{r prob5_ggplot,eval=T}
 #Using ggplot
 x <- data.frame(crime.data$UrbanPop,crime.data$Assault)
+<<<<<<< HEAD
 p <- ggplot(x, aes(x[,1], x[,2])) + geom_point() + theme_classic()
+=======
+p <- ggplot(x, aes(x[,1], x[,2])) + geom_point() + theme_classic() + labs(x="Urban Population", y="Assual cases")
+>>>>>>> Quyen's HW4 submission
 ggMarginal(p, x, type = "histogram", yparams=list(colour="orange"))
 
 ```
