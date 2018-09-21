@@ -1,0 +1,82 @@
+---
+title: "HW5_Do_Quyen"
+author: "Quyen Do"
+date: "September 21, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 3
+My thoughts on what makes a good figure
+It should give you some new information or insights about the data at hand
+
+## Problem 4
+a. A function computing the proportion of successes in a vector
+
+```{r count_success}
+## TODO: run microbenchmark on different count_success function
+
+count_success <- function (vect, value = 1) {
+  # Compute the proportion of successes in a vector
+  
+  # Args:
+  # vect: the vector on which the proportion of successes will be computed
+  # value: the value presented "success" value in the vector. Default value is 1
+  
+  #Return:
+  # A real number from 0 to 1
+  
+  length(vect[which(vect==value)])/length(vect)
+}
+```
+b. Create a simuluated matrix
+```{r binom_matrix}
+set.seed(12345)
+P4b_data <- matrix(rbinom(10,1,prob =(30:40)/100),nrow = 10, ncol =10)
+```
+c. Checking the proportion of success
+```{r}
+# Calculate the proportion of success across matrix row
+prop_row <- apply(P4b_data,1,count_success)
+prop_col <- apply(P4b_data,2,count_success)
+
+prop_mat <- matrix(c(prop_row,prop_col),nrow=2,ncol=10,byrow = TRUE, dimnames = list(c("By Row","By Col"),1:10))
+prop_mat
+```
+The matrix of the simulated binomial using the code in b didn't produce the data as the intentionn. Instead of applying different probabilities to draw success among 10 rows of the matrix, the function seems to apply $p=1$ to all the rows instead.
+
+d.
+```{r}
+simulate_binom <- function(probability) {
+  # Simulate 10 random binomial variables 
+  #  of n = 10 and given probability
+  
+  # Args:
+  # probability: the probability for the binomial distribution
+  
+  #Return:
+  # a vector containing 10 RVs drawn from binomial distribution
+  
+  print(probability)
+  return(rbinom(10, 1, prob = probability))
+}
+
+# A vector of probability
+prob_vect <- (30:40)/100
+
+# apply simulate_binom on each element of prob_vect
+correct_mat <- sapply(prob_vect,simulate_binom)
+
+# Calculate the proportion of success
+# across rows and columns of correct_mat
+prop_row2 <- apply(correct_mat,1,count_success)
+prop_col2 <- apply(correct_mat,2,count_success)
+
+prop_mat2 <- matrix(c(prop_row2,prop_col2),nrow=2,ncol=10,byrow = TRUE, dimnames = list(c("By Row","By Col"),1:10))
+prop_mat2
+```
+
+
