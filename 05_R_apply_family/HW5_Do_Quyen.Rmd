@@ -7,6 +7,10 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(ggExtra)
+library(ggpubr)
 ```
 
 ## Problem 3
@@ -77,6 +81,181 @@ prop_col2 <- apply(correct_mat,2,count_success)
 
 prop_mat2 <- matrix(c(prop_row2,prop_col2),nrow=2,ncol=10,byrow = TRUE, dimnames = list(c("By Row","By Col"),1:10))
 prop_mat2
+```
+
+## Problem 5
+
+```{r starch,}
+#Import raw data from url
+url <- "https://www2.isye.gatech.edu/~jeffwu/book/data/starch.dat"
+starch.dat <- read.csv(url, header=TRUE,sep="")
+
+#Summary
+str(starch.dat)
+starch.dat$starch <- factor(starch.dat$starch)
+knitr::kable(summary(starch.dat))
+
+#Multipanel plot
+#Multipane plot using ggplot and ggpubr
+p1 <- ggplot(starch.dat,aes(x=strength)) + geom_histogram(colour= "black",bins=10,fill="darkred")
+
+p2 <- ggplot(starch.dat,aes(x=starch,y=strength ,group=starch,fill=starch))
+p2 <- p2 + geom_boxplot() + guides(fill=FALSE) + labs(x="starch")
+
+p3 <- ggplot(starch.dat,aes(x=thickness)) + geom_histogram(colour= "black",bins=10,fill="darkgreen")
+
+p4 <- ggplot(starch.dat,aes(x=starch,y=thickness ,group=starch,fill=starch))
+
+p4 <- p4 + geom_boxplot() + guides(fill=FALSE) + labs(x="starch")
+
+p5 <- ggplot(starch.dat,aes(thickness,strength,colour=starch)) + geom_point() + labs(x="thickness",y="strength") + guides(colour=FALSE)
+
+ggarrange(ggarrange(p1,p2,p3,p4,ncol = 2,nrow=2), p5, nrow = 2)
+
+ggplot(starch.dat,aes(thickness,strength)) + geom_point() + facet_wrap(~starch)
+
+```
+
+## Problem 6
+
+```{r get_city_list, echo=F, eval=T, include=T}
+
+    #we are grabbing a SQL set from here
+    # http://www.farinspace.com/wp-content/uploads/us_cities_and_states.zip
+
+    #download the files, looks like it is a .zip
+    library(downloader)
+    download("http://www.farinspace.com/wp-content/uploads/us_cities_and_states.zip",dest="us_cities_states.zip")
+    unzip("us_cities_states.zip", exdir=".")
+    
+    #read in data, looks like sql dump, blah
+    library(data.table)
+    states <- fread(input = "./us_cities_and_states/states.sql",skip = 23,sep = "'", sep2 = ",", header = F, select = c(2,4))
+    names(states) <- c("state_name", "state_code")
+    ### YOU do the CITIES
+    ### I suggest the cities_extended.sql may have everything you need
+    ### can you figure out how to limit this to the 50?
+    cities <- fread(input = "./us_cities_and_states/cities_extended.sql", skip =23, sep = "'",sep2 = ",",header = F, select = seq(from = 2, to = 12, by = 2))
+    names(cities) <- c("city", "state_code", "zip", "latitude", "longitude", "county")
+```
+
+Part b. A summmary table of the number of cities included by state
+
+```{r}
+#The number of cities included by states
+knitr::kable(t(table(cities$state_code)),caption = "Number of cities by state")
+city_count_data <- as.data.frame(table(cities$state_code))
+names(city_count_data) <- c("state_code", "city_count")
+  
+```
+
+Part c. Function that counts occurances of a letter in a string
+
+```{r}
+count.occurances <- function(string, letter){
+  #Count the occurance of a letter from a given string
+  
+  #Args:
+  # string: the string from which the letter will be calculated from
+  # letter: the letter whose occurances in the string will be calculated
+  
+  #Returns:
+  # the number of occurances of the letter in the string
+  
+  # Split the string into a vector of characters
+  char.vect <- strsplit(string,split = NULL)[[1]]
+  
+  # Ensure lower case is across the two variables
+  char.vect <- tolower(char.vect)
+  letter <- tolower(letter)
+  
+  return (sum(char.vect==letter))
+  
+}
+
+letter_count <- data.frame(matrix(NA,nrow=51,ncol=26))
+for (i in 1:51){
+  letter_count[i,] <- sapply(LETTERS,count.occurances,string=states$state_name[i])
+}
+names(letter_count) <- LETTERS
+
+
+#Merge the information from states data.frame onto letter_count
+letter_count$state_name <- states$state_name
+letter_count$state_code <- states$state_code
+letter_city_total <- merge(letter_count,city_count_data,by="state_code")
+
+#Exclude "district of columbia"
+letter_city_total <- letter_city_total[letter_city_total$state_code != "DC",]
+```
+
+Part d. 
+
+```{r maps}
+#https://cran.r-project.org/web/packages/fiftystater/vignettes/fiftystater.html
+library(ggplot2)
+library(fiftystater)
+
+#Create US map colored by city count
+data("fifty_states") # this line is optional due to lazy data loading
+
+# Set up dataset to make sure state_names match that of fifty_states
+letter_city_total$state_code <- tolower(letter_city_total$state_code)
+letter_city_total$state_name <- tolower(letter_city_total$state_name)
+
+# Color for the map 
+#(reference: https://medium.com/@NickDoesData/visualizing-geographic-data-in-r-fb2e0f5b59c5 )
+
+low_color='#ccdbe5' 
+high_color="#114365"
+legend_title = 'City counts'
+
+# US Maps colored with city counts
+
+# map_id creates the aesthetic mapping to the state name column in your data
+p <- ggplot(letter_city_total, aes(map_id = state_name))
+
+# map points to the fifty_states shape data
+p <- p + geom_map(aes(fill = city_count), map = fifty_states) 
+
+p <- p + expand_limits(x = fifty_states$long, y = fifty_states$lat) + coord_map()
+p <- p + scale_x_continuous(breaks = NULL) + scale_y_continuous(breaks = NULL)
+  
+#Set gradient color for city counts
+p <- p + scale_fill_continuous(low = low_color, high = high_color, guide = guide_colorbar(title = legend_title),labels = c("0","1000","2000","3000"), breaks = c(0,1000,2000,3000))
+
+
+p <- p + labs(x = "", y = "") + theme(legend.position = "bottom", panel.background = element_blank())
+p
+```
+
+```{r}
+
+#Create a new variable signaled state_name with more than 3 occurances of any letter
+
+letter_city_total$more_than_3 <- c()
+for (i in 1:51) {
+  letter_city_total$more_than_3[i] <- ifelse(sum(letter_city_total[i,2:27]>3) >=1,1,0)
+  if (sum(letter_city_total[i,2:27]>3))
+    print(letter_city_total[i,"state_name"])
+}
+# US Maps highlighted by states that have more than 3 occurrences of any letter in their name
+high_color <- "darkred"
+
+legend_title <- "State with name having 3 or more occurances of some letter"
+# map_id creates the aesthetic mapping to the state name column in your data
+p <- ggplot(letter_city_total, aes(map_id = state_name))
+
+# map points to the fifty_states shape data
+p <- p + geom_map(aes(fill = more_than_3), map = fifty_states,color = "#ffffff") 
+
+p <- p + expand_limits(x = fifty_states$long, y = fifty_states$lat) + coord_map()
+p <- p + scale_x_continuous(breaks = NULL) + scale_y_continuous(breaks = NULL)
+  
+#Set gradient color for city counts
+p <- p + scale_fill_continuous(high = high_color, guide = guide_colorbar(title = legend_title),labels = c("No","Yes"), breaks = c(0,1))
+p <- p + labs(x = "", y = "") + theme(legend.position = "bottom", panel.background = element_blank())
+p
 ```
 
 
