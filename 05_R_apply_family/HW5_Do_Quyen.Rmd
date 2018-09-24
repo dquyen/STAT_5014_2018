@@ -14,15 +14,13 @@ library(ggpubr)
 ```
 
 ## Problem 3
-My thoughts on what makes a good figure
-It should give you some new information or insights about the data at hand
+
+I believe a good figure should provide us with an overall impression about the data like its size, structure, relationship between variables. It should also provide insight into the data and inform the next steps in the analysis process. Some important aspects of a good figures are reasonable scaling, interpretability, size and the use of colors. 
 
 ## Problem 4
 a. A function computing the proportion of successes in a vector
 
 ```{r count_success}
-## TODO: run microbenchmark on different count_success function
-
 count_success <- function (vect, value = 1) {
   # Compute the proportion of successes in a vector
   
@@ -50,7 +48,7 @@ prop_col <- apply(P4b_data,2,count_success)
 prop_mat <- matrix(c(prop_row,prop_col),nrow=2,ncol=10,byrow = TRUE, dimnames = list(c("By Row","By Col"),1:10))
 prop_mat
 ```
-The matrix of the simulated binomial using the code in b didn't produce the data as the intentionn. Instead of applying different probabilities to draw success among 10 rows of the matrix, the function seems to apply $p=1$ to all the rows instead.
+The matrix of the simulated binomial using the code in b didn't produce the data as the intention. Instead of applying different probabilities to draw success among 10 rows of the matrix, the function seems to apply $p=1$ to all the rows instead.
 
 d.
 ```{r}
@@ -63,13 +61,11 @@ simulate_binom <- function(probability) {
   
   #Return:
   # a vector containing 10 RVs drawn from binomial distribution
-  
-  print(probability)
   return(rbinom(10, 1, prob = probability))
 }
 
 # A vector of probability
-prob_vect <- (30:40)/100
+prob_vect <- (31:40)/100
 
 # apply simulate_binom on each element of prob_vect
 correct_mat <- sapply(prob_vect,simulate_binom)
@@ -79,9 +75,12 @@ correct_mat <- sapply(prob_vect,simulate_binom)
 prop_row2 <- apply(correct_mat,1,count_success)
 prop_col2 <- apply(correct_mat,2,count_success)
 
-prop_mat2 <- matrix(c(prop_row2,prop_col2),nrow=2,ncol=10,byrow = TRUE, dimnames = list(c("By Row","By Col"),1:10))
+prop_mat2 <- matrix(c(prob_vect,prop_row2,prop_col2),nrow=3,ncol=10,byrow = TRUE, dimnames = list(c("True probability","By Row","By Col"),1:10))
 prop_mat2
 ```
+To fix the code in b, I created a vector of probabilities, then used the sapply on each element of that vector and pasted it onto simulation function. "sapply" on the probability vector return a matrix of data whose columns are 10 random data points drawn from the binomial distribution having corresponding probability from the vector.
+
+The "By col" information tell us the probabilities of success for each true probability. Compared with the true probability, we saw that they are pretty close. Any difference is due to randomization.
 
 ## Problem 5
 
@@ -95,7 +94,6 @@ str(starch.dat)
 starch.dat$starch <- factor(starch.dat$starch)
 knitr::kable(summary(starch.dat))
 
-#Multipanel plot
 #Multipane plot using ggplot and ggpubr
 p1 <- ggplot(starch.dat,aes(x=strength)) + geom_histogram(colour= "black",bins=10,fill="darkred")
 
@@ -111,10 +109,11 @@ p4 <- p4 + geom_boxplot() + guides(fill=FALSE) + labs(x="starch")
 p5 <- ggplot(starch.dat,aes(thickness,strength,colour=starch)) + geom_point() + labs(x="thickness",y="strength") + guides(colour=FALSE)
 
 ggarrange(ggarrange(p1,p2,p3,p4,ncol = 2,nrow=2), p5, nrow = 2)
-
 ggplot(starch.dat,aes(thickness,strength)) + geom_point() + facet_wrap(~starch)
 
 ```
+
+
 
 ## Problem 6
 
@@ -143,10 +142,11 @@ Part b. A summmary table of the number of cities included by state
 
 ```{r}
 #The number of cities included by states
-knitr::kable(t(table(cities$state_code)),caption = "Number of cities by state")
+#knitr::kable(t(table(cities$state_code)),caption = "Number of cities by state")
+t(table(cities$state_code))
 city_count_data <- as.data.frame(table(cities$state_code))
 names(city_count_data) <- c("state_code", "city_count")
-  
+
 ```
 
 Part c. Function that counts occurances of a letter in a string
@@ -179,14 +179,13 @@ for (i in 1:51){
 }
 names(letter_count) <- LETTERS
 
-
 #Merge the information from states data.frame onto letter_count
 letter_count$state_name <- states$state_name
 letter_count$state_code <- states$state_code
 letter_city_total <- merge(letter_count,city_count_data,by="state_code")
 
 #Exclude "district of columbia"
-letter_city_total <- letter_city_total[letter_city_total$state_code != "DC",]
+#letter_city_total <- letter_city_total[letter_city_total$state_code != "DC",]
 ```
 
 Part d. 
@@ -244,12 +243,23 @@ high_color <- "darkred"
 
 legend_title <- "State with name having 3 or more occurances of some letter"
 # map_id creates the aesthetic mapping to the state name column in your data
+letter_city_total$id <- letter_city_total$state_name
 p <- ggplot(letter_city_total, aes(map_id = state_name))
 
 # map points to the fifty_states shape data
 p <- p + geom_map(aes(fill = more_than_3), map = fifty_states,color = "#ffffff") 
 
 p <- p + expand_limits(x = fifty_states$long, y = fifty_states$lat) + coord_map()
+
+# ATTEMPT TO ADD STATE ABBREVIATION - NOT WORKING!
+# letter_city_total$id <- letter_city_total$state_name
+# p <- p + geom_text(data = fifty_states %>%
+#               group_by(id) %>%
+#               summarise(lat = mean(c(max(lat), min(lat))),
+#                         long = mean(c(max(long), min(long)))) %>%
+#               mutate(state = id) %>%
+#               left_join(letter_city_total, by = "id"), aes(x = long, y = lat, label = state_code ))
+
 p <- p + scale_x_continuous(breaks = NULL) + scale_y_continuous(breaks = NULL)
   
 #Set gradient color for city counts
