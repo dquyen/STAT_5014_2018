@@ -5,8 +5,9 @@ date: "September 21, 2018"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE }
 knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyverse)
 library(ggplot2)
 library(ggExtra)
@@ -51,7 +52,7 @@ prop_mat
 The matrix of the simulated binomial using the code in b didn't produce the data as the intention. Instead of applying different probabilities to draw success among 10 rows of the matrix, the function seems to apply $p=1$ to all the rows instead.
 
 d.
-```{r}
+```{r tidy.opts=list(width.cutoff=60),tidy=TRUE}
 simulate_binom <- function(probability) {
   # Simulate 10 random binomial variables 
   #  of n = 10 and given probability
@@ -109,11 +110,21 @@ p4 <- p4 + geom_boxplot() + guides(fill=FALSE) + labs(x="starch")
 p5 <- ggplot(starch.dat,aes(thickness,strength,colour=starch)) + geom_point() + labs(x="thickness",y="strength") + guides(colour=FALSE)
 
 ggarrange(ggarrange(p1,p2,p3,p4,ncol = 2,nrow=2), p5, nrow = 2)
+```
+ Looking at the variables indiviudally, "strength" skews slightly to the right, while "thickness"'s distribution is a little more uniformly. When contrasting the "strength" and "thickness" between categories of starch, we see that "CO" starch stands out as having the lowest values in both "thickness" and strength. 
+ 
+The scatterplot between strength and thickness does show a linear relationship between the two variable with an increase in thickness resulting in an increase in the mean of strength. However, there seems to be a shift in slopes in the relationship around thickness $= 8$. The rate of increase in mean strength clearly reduces after this point. Coincidently, when "starch" type is taken into account, a majority of the datapoint from "CO" starch lie in the region of low thickness, low strength and bigger slope. "CA" and "PO" scatter more randomly together in the smaller slope region with "PO" starch accounts more on the biggest values of "thickness"
+
+```{r}
+#Pairs plot
+pairs(starch.dat)
+
+# Scatter plot by starch
 ggplot(starch.dat,aes(thickness,strength)) + geom_point() + facet_wrap(~starch)
 
 ```
 
-
+When plotting three different scatter plot according the "starch" type, our observations from the general scatter plot were confirmed. In "CO", the linear relationship between "thickenss" and "strength" seems to have a much steepr slopes than the two remaining categories.
 
 ## Problem 6
 
