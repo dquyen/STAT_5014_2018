@@ -1,0 +1,32 @@
+---
+title: "HW7_Do_Quyen"
+author: "Quyen Do"
+date: "October 7, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(xlsx)
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(ellipse)
+library(ggExtra)
+library(gganimate)
+```
+
+
+## Multipanel pairs plot
+
+```{r prob4_dataImport}
+data1 <- read.xlsx("HW4_data.xlsx",sheetIndex = 1)
+data2 <- read.xlsx("HW4_data.xlsx",sheetIndex = 2)
+data_combined <- rbind(data1,data2)
+
+p <- ggplot(data_combined,aes(depth,phosphate)) + geom_point()
+p + facet_wrap(~block)
+
+```
+
+
