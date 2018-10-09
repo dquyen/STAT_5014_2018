@@ -88,18 +88,18 @@ In this case, I will rely on the numerical solution for $\hat{\beta}$ and calcul
 ## Problem 5: Need for speed
 
 ```{r}
-set.seed(12456)
-G <- matrix(sample(c(0, 0.5, 1), size = 16000, replace = T),
-ncol = 10)
-R <- cor(G) # R: 10 * 10 correlation matrix of G
-C <- kronecker(R, diag(1600)) # C is a 16000 * 16000 block diagonal matrix
-id <- sample(1:16000, size = 932, replace = F)
-q <- sample(c(0, 0.5, 1), size = 15068, replace = T) # vector of length 15068
-A <- C[id, -id] # matrix of dimension 932 * 15068
-B <- C[-id, -id] # matrix of dimension 15068 * 15068
-p <- runif(932, 0, 1)
-r <- runif(15068, 0, 1)
-C <- NULL #save some memory space
+    set.seed(12456) 
+    
+    G <- matrix(sample(c(0,0.5,1),size=16000,replace=T),ncol=10)
+    R <- cor(G) # R: 10 * 10 correlation matrix of G
+    C <- kronecker(R, diag(1600)) # C is a 16000 * 16000 block diagonal matrix
+    id <- sample(1:16000,size=932,replace=F)
+    q <- sample(c(0,0.5,1),size=15068,replace=T) # vector of length 15068
+    A <- C[id, -id] # matrix of dimension 932 * 15068
+    B <- C[-id, -id] # matrix of dimension 15068 * 15068
+    p <- runif(932,0,1)
+    r <- runif(15068,0,1)
+    C<-NULL #save some memory space
 ```
 
 a. Size of A and B
@@ -120,61 +120,14 @@ b. Optimization
 Recognizing that matrix B already consists of a diagonal of $1$'s and because of the nature of subsetting from a kronecker matrix coming from a matrix and identity matrix, most of the values in B will consist of 0's. Thus, instead of using the "solve" function, we can program our own function to invert matrices by using a parralel Identity matrix as inspired by the Gauss-Jordan elimination. By using vector addition and scalar multiplication, we hope to reduce the run time instead of going through the "solve" function.
 
 ```{r}
-op.time <- system.time({
 
-invert_matrix <- function(M) {
-  I <- diag(nrow(M))
-  # Upper triangular transformation
+# Using my own matrix multiplication functions in R based on the properties of A and B
+op.time.1 <- system.time({
   
-  # Going through each column c in M (starting from 1) and
-  # look at the values on row greater than c, if they are nonzero
-  # then perform transformation. If the value is on row z,
-  # then use row z of M as the pivot
-  for (c in 1:ncol(M)) {
-    
-    # Check if M[c,c] = 1. If not, divide the whole row by M[c,c]
-    if (M[c,c] != 1) {
-      I[c,] <- I[c,]/M[c,c]
-      M[c,] <- M[c,]/M[c,c]
-    }
-    
-    #Get the row with values other than 0 exclude rows less or equal to c
-    notZero <- which(M[,c] != 0)
-    notZero <- notZero[notZero > c]
-    
-    # For every row z indicated in notZero, take the row z of I and subtract it by row c of I multiplied by the nonzero value
-    for (z in notZero) {
-      I[z,] <- I[z,] - M[z,c] * I[c,]
-      M[z,] <- M[z,] - M[z,c] * M[c,]
-    }
-  }    
-   
-  #Check for 1's diagonal
-  not1 <- which(diag(M) != 1)
-  for (i in not1) {
-    #Divide that row by that value
-    if (M[i,i] != 0) {
-      I[i,] <- I[i,]/M[i,i]
-      M[i,] <- M[i,]/M[i,i]
-    }
-  }
-    
-  # Lower triangular transformation
-  for (r in 1:nrow(M)) {
-    
-    # Get the column with values other than 0 (excluding column r)
-    notZero <- which(M[r,] != 0)
-    notZero <- notZero[notZero!=r]
-    
-    # For every column z indicated in notZero, take row r of I and subtract it by row z of I multiplied by the nonzero value
-    for (z in notZero) {
-      I[r,] <- I[r,] - I[z,]*M[r,z]
-      M[r,] <- M[r,] - M[z,]*M[r,z]
-    }
-  }
-  print("Done with inverting")
-  return (I)
-}
+  # Import inverse function from the RcppArmadillo package since things run faster in Cpp
+  library(RcppArmadillo)
+  library(Rcpp)
+  sourceCpp("arma_functions.cpp")
 
 #Multiplying A and B_invert
 # Since each row i of A and columns of B contain a lot of zeros,
@@ -182,61 +135,74 @@ invert_matrix <- function(M) {
 
 ## Initialize an empty result matrix
 
-mat.mat.mult <- function (A,inv_B) {
-  A.invB <- matrix(0L,nrow=nrow(A),ncol=ncol(inv_B))
+mat.mat.mult <- function (A,B) {
+  AB <- matrix(0L,nrow=nrow(A),ncol=ncol(B))
 
-for (i in 1:nrow(A)) {
-  # If the current row contains only 0's, skip to next row
-  if (all(A[i,] == rep(0,ncol(A))))
-    {
-      next
-    }
-  
-  for (j in 1:ncol(inv_B)) {
-    if (all(inv_B[,j] == rep(0,nrow(inv_B)))) {
-      next
-    }
-    # Obtain the position where nonzero element exists
-    notZero_A <- which(A[i,] != 0)
-    notZero_invB <- which(inv_B[,j] != 0)
-    
-    #Find the common position of nonzero between A's row i and B's col j
-    both_nonZero <- intersect(notZero_A,notZero_invB)
-    
-    #If exists, then perform dot product and assign to A.invB[i,j]
-    if (length(both_nonZero) > 0) {
-      A.invB[i,j] <- A[i,both_nonZero] %*% inv_B[both_nonZero,j]
+  #Create a list of rows of A that contain nonzero elements
+  nonZeroRow <- c()
+  for (i in 1:nrow(A)){
+    if (any(A[i,] != 0)){
+      nonZeroRow <- c(nonZeroRow,i)
     }
   }
-}
-  print("Done with multiplying mat mat")
- return (A.invB) 
+  
+  nonZeroCol <- c()
+  #Create a list of columns of A that contain nonzero elements
+  for (j in 1:ncol(B)){
+    if (any(B[,j] != 0)){
+      nonZeroCol <- c(nonZeroCol,j)
+    }
+  }
+  
+  #Loop through each element to calculate the dot product
+  
+  for (Ar in nonZeroRow)
+  {
+    # Obtain the position in A row where nonzero element exists
+    notZero_A <- which(A[Ar,] != 0)
+    for (Bc in nonZeroCol) {
+      # Obtain the position in B column where nonzero element exists
+      notZero_B <- which(B[,Bc] != 0)
+      
+      #Find the common position of nonzero between A's row i and B's col j
+      both_nonZero <- intersect(notZero_A,notZero_B)
+    
+    #If exists, then perform dot product and assign to A.invB[i,j]
+      if (length(both_nonZero) > 0) {
+        AB[Ar,Bc] <- A[Ar,both_nonZero] %*% B[both_nonZero,Bc]
+      }
+      
+    }
+    
+  }
+
+ return (AB) 
 }
 
 # Calculate A*inv(B)*(q-r)
 
-mat.vect.mult <- function(A.invB,q.subr.r) {
-  result <- rep(0,nrow(A))
+mat.vect.mult <- function(M,v) {
+  result <- rep(0,nrow(M))
 
-for (i in 1:nrow(A.invB)) {
-  if (all(A.invB[i,] == rep(0,ncol(A.invB)))){
-    next
-  } 
-  
+for (i in 1:nrow(M)) {
   #Apply the same scheme, only rows containing non-zero values matter
-  nonZero_posit <- which(A.invB[i,] != 0)
-  result[i] <- A.invB[i,nonZero_posit] %*% q.subr.r[nonZero_posit]
-}
-  print("Done with multiplying mat vect")
+  if (any(M[i,] != 0)){
+    nonZero_posit <- which(M[i,] != 0)
+    result[i] <- M[i,nonZero_posit] %*% v[nonZero_posit]
+  }
+    
+  } 
   return(result)
 }
+my_Y_1 <- p + mat.vect.mult(mat.mat.mult(A,getInverse(B)),q-r)
+})
 
-my_Y <- p + mat.vect.mult(mat.mat.mult(A,invert_matrix(B)),q-r)
-
+# No loading time
+op.time.1.noLoading <- system.time({
+  my_Y_1 <- p + mat.vect.mult(mat.mat.mult(A,solve(B)),q-r)
 })
 
 ```
-
 c. Put everything to test
 
 ```{r}
@@ -248,20 +214,15 @@ non.op.time <- system.time(
 )
 
 #Check result
-plot(true_Y,my_Y,pch=16)
+plot(true_Y,my_Y_1,pch=16,main="True values vs results from optimization")
 
 # Comparison
-report5 <- data.frame(Method = c("Non optimization","Optimization"), User =c(non.op.time[1],op.time[1]), System =c(non.op.time[2],op.time[2]), Elapsed =c(non.op.time[3],op.time[3]))
-
+report5 <- data.frame(Method = c("Non optimization","Optimization 1","Opt.1 without loading"),User =c(non.op.time[1],op.time.1[1],op.time.1.noLoading[1]), System =c(non.op.time[2],op.time.1[2],op.time.1.noLoading[2]), Elapsed =c(non.op.time[3],op.time.1[3],op.time.1.noLoading[3]))
+ 
 knitr::kable(report5,caption="Running time comparison table")
 
 ```
 
+The comparison table shows that with optimization, the time it takes to compute y is still bigger than that of using standard R operations. 
 
 
-## How to use R Notebook
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

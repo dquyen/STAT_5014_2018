@@ -2,7 +2,9 @@
 title: "HW7_Do_Quyen"
 author: "Quyen Do"
 date: "October 7, 2018"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -25,8 +27,18 @@ data2 <- read.xlsx("HW4_data.xlsx",sheetIndex = 2)
 data_combined <- rbind(data1,data2)
 
 p <- ggplot(data_combined,aes(depth,phosphate)) + geom_point()
-p + facet_wrap(~block)
-
+p <- p + facet_wrap(~block)
+p
 ```
 
+
+## gganimate
+
+```{r}
+library(gganimate)
+g <- ggplot(data_combined,aes(depth,phosphate)) + geom_point() + 
+  labs(title = 'Scatter plots of Depth and Phosphate by Block',subtitle = 'Block: {closest_state}', x = 'Phosphate', y = 'Depth') + 
+  transition_states(block, transition_length = 1, state_length = 1) + ease_aes('linear')
+g
+```
 
